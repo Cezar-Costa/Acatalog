@@ -2,9 +2,9 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import models, transaction
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from django.db.models.functions import TruncDate
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -33,6 +33,125 @@ import uuid
 import urllib.request as urlrequest
 
 User = get_user_model()
+
+
+def format_brl(value):
+    amount = float(value or 0)
+    formatted = f'{amount:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+    return f'R$ {formatted}'
+
+
+def dashboard_admin_user(request):
+    token = request.COOKIES.get('refresh_token')
+    if not token:
+        return None
+    try:
+        refresh = RefreshToken(token)
+        user_id = refresh.get('user_id')
+    except TokenError:
+        return None
+    if not user_id:
+        return None
+    user = User.objects.filter(id=user_id).first()
+    if not user or not user.is_active or not user.is_admin_role:
+        return None
+    return user
+
+
+def admin_dashboard(request):
+    admin_user = dashboard_admin_user(request)
+    if not admin_user:
+        return redirect('/admin/login?next=/dashboard/')
+
+    orders = Order.objects.select_related('user').all()
+    paid_orders = orders.exclude(status=Order.Status.CANCELED)
+    total_sales = paid_orders.aggregate(total=Sum('total'))['total'] or 0
+    total_orders = paid_orders.count()
+    average_ticket = total_sales / total_orders if total_orders else 0
+    low_stock_count = Inventory.objects.filter(quantity__lte=models.F('low_stock_threshold')).count()
+
+    sales_chart = list(
+        paid_orders.annotate(day=TruncDate('created_at'))
+        .values('day')
+        .annotate(sales=Sum('total'), orders=Count('id'))
+        .order_by('day')
+    )[-7:]
+    chart_max = max((float(item['sales'] or 0) for item in sales_chart), default=1)
+    for item in sales_chart:
+        value = float(item['sales'] or 0)
+        item['label'] = item.pop('day').strftime('%d/%m')
+        item['sales_display'] = format_brl(value)
+        item['height'] = max(round((value / chart_max) * 180), 12) if chart_max else 12
+
+    recent_orders = []
+    for order in orders.order_by('-created_at')[:6]:
+        recent_orders.append({
+            'id': order.id,
+            'status': order.get_status_display(),
+            'total': format_brl(order.total),
+            'customer': order.user.get_full_name() or order.user.username or order.user.email,
+            'date': order.created_at.strftime('%d/%m/%Y'),
+        })
+
+    best_sellers = []
+    products = Product.objects.select_related('brand', 'category', 'inventory').order_by('-sold_count')[:6]
+    for index, product in enumerate(products, start=1):
+        best_sellers.append({
+            'position': index,
+            'name': product.name,
+            'brand': product.brand.name,
+            'category': product.category.name,
+            'price': format_brl(product.current_price),
+            'sold_count': product.sold_count,
+            'stock': product.inventory.available if hasattr(product, 'inventory') else 0,
+        })
+
+    low_stock_products = []
+    low_stock_qs = Inventory.objects.select_related('product', 'product__brand').filter(
+        quantity__lte=models.F('low_stock_threshold')
+    )[:5]
+    for item in low_stock_qs:
+        low_stock_products.append({
+            'name': item.product.name,
+            'brand': item.product.brand.name,
+            'available': item.available,
+            'threshold': item.low_stock_threshold,
+        })
+
+    status_summary = list(
+        orders.values('status')
+        .annotate(total=Count('id'))
+        .order_by('status')
+    )
+    status_labels = dict(Order.Status.choices)
+    for item in status_summary:
+        item['label'] = status_labels.get(item['status'], item['status'])
+
+    context = {
+        'metrics': [
+            {'label': 'Faturamento total', 'value': format_brl(total_sales), 'note': 'Pedidos nao cancelados'},
+            {'label': 'Pedidos', 'value': total_orders, 'note': 'Historico operacional'},
+            {'label': 'Ticket medio', 'value': format_brl(average_ticket), 'note': 'Media por pedido pago'},
+            {'label': 'Alerta de estoque', 'value': low_stock_count, 'note': 'Produtos no limite'},
+        ],
+        'sales_chart': sales_chart,
+        'recent_orders': recent_orders,
+        'best_sellers': best_sellers,
+        'low_stock_products': low_stock_products,
+        'status_summary': status_summary,
+        'totals': {
+            'products': Product.objects.count(),
+            'categories': Category.objects.count(),
+            'customers': User.objects.filter(role=User.Role.CUSTOMER).count(),
+            'promotions': Promotion.objects.filter(is_active=True).count(),
+        },
+        'admin_user': admin_user,
+    }
+    return render(request, 'commerce/python_dashboard.html', context)
+
+
+def python_dashboard(request):
+    return redirect('/dashboard/')
 
 
 def token_response(user, response_status=status.HTTP_200_OK):
