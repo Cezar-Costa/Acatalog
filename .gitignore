@@ -32,6 +32,7 @@ db.sqlite3
 .pytest_cache/
 .coverage
 htmlcov/
+.logs/
 
 # Node
 node_modules/
