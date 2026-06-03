@@ -18,6 +18,7 @@ router.register('promotions', views.PromotionViewSet, basename='promotion')
 router.register('customers', views.CustomerViewSet, basename='customer')
 
 urlpatterns = [
+    path('health/', views.health),
     path('', include(router.urls)),
     path('auth/register/', views.register),
     path('auth/login/', views.customer_login),
