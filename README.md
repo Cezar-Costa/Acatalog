@@ -12,12 +12,12 @@ Monolito com backend Django REST e frontend Next.js para e-commerce de hardware,
 ## Backend
 
 ```powershell
-cd "C:\Users\cezar\Desktop\loja informatica"
-Copy-Item backend\.env.example backend\.env
-backend\venv\Scripts\pip.exe install -r backend\requirements.txt
-backend\venv\Scripts\python.exe backend\manage.py migrate
-backend\venv\Scripts\python.exe backend\manage.py seed_demo
-backend\venv\Scripts\python.exe backend\manage.py runserver
+cd backend
+Copy-Item .env.example .env
+.\venv\Scripts\pip.exe install -r requirements.txt
+.\venv\Scripts\python.exe manage.py migrate
+.\venv\Scripts\python.exe manage.py seed_demo
+.\venv\Scripts\python.exe manage.py runserver
 ```
 
 API: `http://127.0.0.1:8000/api/`
@@ -70,18 +70,29 @@ Next.js no navegador, porque o proprio Django consulta o banco e renderiza os ca
 ## Frontend
 
 ```powershell
-cd "C:\Users\cezar\Desktop\loja informatica\frontend"
+cd frontend
 npm.cmd install
-npm.cmd run dev -- -p 3001
+npm.cmd run dev
 ```
 
-Loja: `http://localhost:3001/`
-Dashboard Next.js: `http://localhost:3001/admin`
+Loja: `http://127.0.0.1:3000/`
+Dashboard Next.js: `http://127.0.0.1:3000/admin`
+
+## Desenvolvimento com um comando
+
+Depois de instalar as dependencias do backend e do frontend, tambem da para subir tudo pela raiz:
+
+```powershell
+npm.cmd run dev
+```
+
+Esse comando aplica migracoes, sobe o Django em `http://127.0.0.1:8000` e o Next.js em
+`http://127.0.0.1:3000`.
 
 Se no Windows aparecer `Error: spawn EPERM` no `npm run dev`, use modo estavel:
 
 ```powershell
-cd "C:\Users\cezar\Desktop\loja informatica\frontend"
+cd frontend
 npm.cmd run build
 npm.cmd run start -- -H 127.0.0.1 -p 3001
 ```
@@ -117,9 +128,10 @@ npm.cmd run dev -- -p 3001
 ## Validacao
 
 ```powershell
-backend\venv\Scripts\python.exe backend\manage.py check
-backend\venv\Scripts\python.exe backend\manage.py test
-cd frontend
+cd backend
+.\venv\Scripts\python.exe manage.py check
+.\venv\Scripts\python.exe manage.py test
+cd ..\frontend
 npm.cmd run lint
 npm.cmd run build
 ```
