@@ -21,19 +21,34 @@ var/
 *.egg
 .env
 .env.local
+.env.production
 .env.*.local
+!.env.example
 .venv
 venv/
 ENV/
+db.sqlite3
+*.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Node
 node_modules/
 npm-debug.log
+npm-debug.log*
 yarn-error.log
+pnpm-debug.log*
 dist/
 build/
 .next/
+out/
+.turbo/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Editor
+.vscode/
+.idea/
