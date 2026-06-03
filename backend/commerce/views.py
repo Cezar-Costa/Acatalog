@@ -35,6 +35,12 @@ import urllib.request as urlrequest
 User = get_user_model()
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health(request):
+    return Response({'status': 'ok'})
+
+
 def format_brl(value):
     amount = float(value or 0)
     formatted = f'{amount:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
