@@ -89,6 +89,9 @@ npm.cmd run dev
 Esse comando aplica migracoes, sobe o Django em `http://127.0.0.1:8000` e o Next.js em
 `http://127.0.0.1:3000`.
 
+Para apresentacao com Cloudflare Tunnel, aponte o tunnel para `http://127.0.0.1:3000`. O script espera o backend
+responder em `/api/health/` antes de subir o frontend e grava logs do Django em `.logs/backend.log`.
+
 Se no Windows aparecer `Error: spawn EPERM` no `npm run dev`, use modo estavel:
 
 ```powershell
