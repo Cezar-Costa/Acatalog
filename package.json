@@ -1,0 +1,15 @@
+{
+  "name": "acatalog",
+  "version": "1.4.0",
+  "private": true,
+  "description": "Acatalog Tech full-stack development launcher",
+  "scripts": {
+    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location backend; .\\venv\\Scripts\\python.exe manage.py runserver 127.0.0.1:8000\"",
+    "lint": "npm --prefix frontend run lint",
+    "build": "npm --prefix frontend run build",
+    "test": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location backend; .\\venv\\Scripts\\python.exe manage.py test\"",
+    "check": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location backend; .\\venv\\Scripts\\python.exe manage.py check\""
+  }
+}
